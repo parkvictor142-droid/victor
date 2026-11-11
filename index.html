@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="de" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ictorv · Hotel Morgenstern</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --onyx: #07090F;
+    --night: #111A2E;
+    --night-2: #18233B;
+    --gold: #C9A55C;
+    --gold-soft: rgba(201,165,92,.18);
+    --pearl: #EFE6D2;
+    --pearl-dim: rgba(239,230,210,.62);
+    --line: rgba(201,165,92,.22);
+
+    --st-clean: #6FA584;
+    --st-occupied: #C9A55C;
+    --st-dirty: #C0625A;
+    --st-inspected: #86A9CC;
+    --st-ooo: #6E7381;
+
+    --display: "Cinzel", "Times New Roman", serif;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --sans: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--onyx);
+    color: var(--pearl);
+    font: 15px/1.5 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  /* ---------- Crest ---------- */
+  .crest { display: block; }
+
+  /* ---------- Sign-in ---------- */
+  .signin {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 32px 20px;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,165,92,.10), transparent 70%),
+      var(--onyx);
+  }
+  .signin-card {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  .signin-card .crest { margin: 0 auto 20px; }
+  .wordmark {
+    font-family: var(--display);
+    font-weight: 600;
+    letter-spacing: .32em;
+    color: var(--gold);
+    margin: 0;
+    font-size: 30px;
+    padding-left: .32em; /* balances letter-spacing */
+  }
+  .hotel-line {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--pearl-dim);
+    margin: 4px 0 36px;
+  }
+  .signin-form {
+    text-align: left;
+    background: var(--night);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 28px;
+  }
+  .signin-form h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0 0 20px;
+  }
+  label { display: block; font-size: 13px; color: var(--pearl-dim); margin-bottom: 6px; }
+  .field { margin-bottom: 18px; }
+  input[type=email], input[type=password] {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--onyx);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+  }
+  input:focus { border-color: var(--gold); outline: none; }
+  .btn-gold {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 3px;
+    background: var(--gold);
+    color: var(--onyx);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-gold:hover { filter: brightness(1.08); }
+  .btn-gold:disabled { opacity: .6; cursor: wait; }
+  .error {
+    background: rgba(192,98,90,.14);
+    border-left: 3px solid var(--st-dirty);
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  .lang-switch {
+    display: inline-flex;
+    margin-top: 24px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .lang-switch button {
+    background: none;
+    border: 0;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--pearl-dim);
+  }
+  .lang-switch button[aria-pressed=true] { background: var(--gold-soft); color: var(--gold); }
+
+  /* ---------- App shell ---------- */
+  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100%; }
+  .sidebar {
+    background: var(--night);
+    border-right: 1px solid var(--line);
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 0 6px; }
+  .brand .wordmark { font-size: 18px; letter-spacing: .26em; padding-left: 0; }
+  .brand small { display: block; font-family: var(--serif); font-style: italic; color: var(--pearl-dim); font-size: 14px; }
+  nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  nav button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-left: 2px solid transparent;
+    padding: 10px 12px;
+    color: var(--pearl-dim);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  nav button[aria-current=page] { color: var(--pearl); border-left-color: var(--gold); background: var(--gold-soft); }
+  nav button:disabled { cursor: default; opacity: .55; }
+  nav .soon { font-size: 11px; color: var(--pearl-dim); }
+  .who {
+    margin-top: auto;
+    border-top: 1px solid var(--line);
+    padding: 18px 6px 0;
+    font-size: 14px;
+  }
+  .who strong { display: block; font-weight: 600; }
+  .who span { color: var(--gold); font-size: 13px; }
+  .who-actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+  .link-btn { background: none; border: 0; padding: 0; color: var(--pearl-dim); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
+  .who .lang-switch { margin-top: 0; }
+
+  main { padding: 36px 40px 60px; min-width: 0; }
+  .page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 28px; }
+  .page-head h1 { font-family: var(--serif); font-weight: 600; font-size: 38px; line-height: 1.1; margin: 0; }
+  .page-head p { margin: 4px 0 0; color: var(--pearl-dim); }
+
+  /* Status summary doubles as the filter */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+  .legend button {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--night);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .legend button[aria-pressed=true] { border-color: var(--gold); background: var(--night-2); }
+  .legend b { font-weight: 600; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+  .floor { margin-bottom: 30px; }
+  .floor h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0 0 12px;
+    color: var(--pearl-dim);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 6px;
+  }
+  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .room {
+    position: relative;
+    text-align: left;
+    background: var(--night);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--c);
+    border-radius: 3px;
+    padding: 12px 14px 14px;
+    cursor: pointer;
+  }
+  .room:hover { background: var(--night-2); }
+  .room .num { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .04em; }
+  .room .type { display: block; font-size: 12px; color: var(--pearl-dim); margin-top: 2px; }
+  .room .st { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 10px; }
+  .room .st .dot { width: 8px; height: 8px; background: var(--c); }
+
+  .notice { color: var(--pearl-dim); padding: 40px 0; }
+
+  /* ---------- Status dialog ---------- */
+  dialog {
+    background: var(--night);
+    color: var(--pearl);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 26px;
+    width: min(380px, calc(100% - 32px));
+  }
+  dialog::backdrop { background: rgba(7,9,15,.7); }
+  dialog h3 { font-family: var(--serif); font-size: 28px; font-weight: 600; margin: 0; }
+  dialog .sub { color: var(--pearl-dim); margin: 0 0 18px; }
+  .status-options { display: grid; gap: 8px; margin-bottom: 18px; }
+  .status-options button {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--onyx);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 11px 12px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .status-options button[aria-pressed=true] { border-color: var(--gold); }
+  .status-options button:hover { background: var(--night-2); }
+
+  /* ---------- Reservations ---------- */
+  .btn-inline { width: auto; padding: 11px 20px; }
+  .flash {
+    border-left: 3px solid var(--st-clean);
+    background: rgba(111,165,132,.12);
+    padding: 10px 12px;
+    margin: 0 0 20px;
+  }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  th { font-weight: 500; color: var(--pearl-dim); background: var(--night); }
+  tbody tr:hover { background: rgba(17,26,46,.6); }
+  .num-col { text-align: right; font-variant-numeric: tabular-nums; }
+  .ref { font-family: var(--display); letter-spacing: .04em; white-space: nowrap; }
+  .sub-line { display: block; font-size: 12px; color: var(--pearl-dim); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .badge .dot { width: 8px; height: 8px; }
+
+  dialog.wide { width: min(620px, calc(100% - 32px)); max-height: calc(100% - 32px); }
+  dialog.wide h3 { margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid select, .form-grid input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--onyx);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+  }
+  .form-grid select:focus, .form-grid input:focus { border-color: var(--gold); outline: none; }
+  .new-guest {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    padding: 14px;
+    border: 1px dashed var(--line);
+    border-radius: 3px;
+  }
+  .summary { grid-column: 1 / -1; display: grid; gap: 4px; }
+  .summary:not(:empty) { background: var(--onyx); border: 1px solid var(--line); border-radius: 3px; padding: 14px; }
+  .summary .row { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+  .summary .total {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold);
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .form-actions { display: flex; gap: 20px; align-items: center; justify-content: flex-end; margin-top: 20px; }
+
+  /* ---------- Check-in & Meldeschein ---------- */
+  .actions { display: flex; gap: 14px; align-items: center; justify-content: flex-end; }
+  .btn-small {
+    background: var(--gold);
+    color: var(--onyx);
+    border: 0;
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-small.outline { background: none; color: var(--gold); border: 1px solid var(--gold); }
+  .info-box {
+    background: rgba(134,169,204,.12);
+    border-left: 3px solid var(--st-inspected);
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .info-box.warn { background: var(--gold-soft); border-left-color: var(--gold); }
+  .melde h4 { font-family: var(--serif); font-size: 21px; font-weight: 600; margin: 4px 0 2px; }
+  .melde > .sub-line { margin-bottom: 16px; font-size: 13px; }
+  .sig-pad {
+    display: block;
+    width: 100%;
+    height: 150px;
+    background: var(--pearl);
+    border-radius: 3px;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .sig-row { display: flex; justify-content: space-between; align-items: baseline; }
+
+  /* ---------- Folio & invoices ---------- */
+  .folio-table { min-width: 0; }
+  dialog.wide .table-wrap { margin-bottom: 14px; }
+  .extra { margin: 16px 0 4px; border: 1px dashed var(--line); border-radius: 3px; padding: 10px 14px; }
+  .extra summary { cursor: pointer; color: var(--gold); font-size: 14px; }
+  .extra[open] summary { margin-bottom: 14px; }
+  .pay-row { margin-top: 16px; }
+  .summary .muted { color: var(--pearl-dim); font-size: 13px; }
+
+  dialog.doc { width: min(820px, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 18px; }
+  .inv { background: #fff; color: #15171c; padding: 40px 44px; border-radius: 2px; font: 13px/1.5 var(--sans); }
+  .inv-head { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; border-bottom: 2px solid #C9A55C; padding-bottom: 18px; margin-bottom: 24px; }
+  .inv-brand { display: flex; gap: 12px; align-items: center; }
+  .inv-word { font-family: var(--display); letter-spacing: .2em; font-weight: 600; font-size: 16px; color: #8A6D2F; }
+  .inv-addr { color: #555; font-size: 12px; }
+  .inv h2 { font-family: var(--serif); font-size: 30px; line-height: 1.1; margin: 0 0 8px; font-weight: 600; color: #15171c; }
+  .inv dl { display: grid; grid-template-columns: auto auto; gap: 2px 16px; margin: 0; font-size: 12px; }
+  .inv dt { color: #666; }
+  .inv dd { margin: 0; text-align: right; font-weight: 500; }
+  .inv-to { margin-bottom: 26px; line-height: 1.6; }
+  .inv-to strong { font-weight: 600; }
+  .inv table { min-width: 0; width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+  .inv th, .inv td { color: #15171c; background: none; border-bottom: 1px solid #E3DDD0; padding: 8px 6px; font-size: 12.5px; }
+  .inv th { color: #666; font-weight: 500; }
+  .inv tbody tr:hover { background: none; }
+  .inv-total { display: flex; justify-content: space-between; font-family: var(--serif); font-size: 22px; font-weight: 600; border-top: 2px solid #15171c; padding-top: 10px; margin: 4px 0 12px; }
+  .inv-paid { color: #2F6B47; font-weight: 500; }
+  .inv-open { color: #9A3B33; font-weight: 600; }
+  .inv-thanks { font-family: var(--serif); font-style: italic; font-size: 16px; margin-top: 22px; }
+  .inv-foot { margin-top: 26px; padding-top: 12px; border-top: 1px solid #E3DDD0; color: #666; font-size: 11px; text-align: center; }
+  #print-root { display: none; }
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    html, body { background: #fff !important; }
+    body.printing > :not(#print-root) { display: none !important; }
+    body.printing #print-root { display: block; }
+    body.printing .inv { padding: 0; }
+  }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 820px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { padding: 16px; gap: 14px; border-right: 0; border-bottom: 1px solid var(--line); }
+    nav ul { grid-auto-flow: column; overflow-x: auto; }
+    nav button { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; }
+    nav button[aria-current=page] { border-bottom-color: var(--gold); }
+    nav .soon { display: none; }
+    .who { margin-top: 0; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .who-actions { margin-top: 0; }
+    main { padding: 24px 16px 48px; }
+    .page-head h1 { font-size: 30px; }
+    .form-grid, .new-guest { grid-template-columns: 1fr; }
+    .inv { padding: 22px 18px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .signin-card { animation: rise .6s ease-out both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<!-- Reusable crest: gold morning star in a double ring -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="crest" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="47" fill="none" stroke="#C9A55C" stroke-width="1.6"/>
+    <circle cx="50" cy="50" r="41" fill="none" stroke="#C9A55C" stroke-width=".8"/>
+    <path fill="#C9A55C" d="M50 14 L55 43 L84 50 L55 57 L50 86 L45 57 L16 50 L45 43 Z"/>
+    <path fill="#C9A55C" opacity=".55" d="M50 30 L53 47 L70 50 L53 53 L50 70 L47 53 L30 50 L47 47 Z" transform="rotate(45 50 50)"/>
+    <circle cx="50" cy="50" r="3" fill="#07090F"/>
+  </symbol>
+</svg>
+
+<!-- ================= SIGN-IN ================= -->
+<section id="signin" class="signin hidden">
+  <div class="signin-card">
+    <svg class="crest" width="84" height="84" role="img" aria-label="Morgenstern crest"><use href="#crest"/></svg>
+    <h1 class="wordmark">ICTORV</h1>
+    <p class="hotel-line">Hotel Morgenstern · München</p>
+
+    <form id="signin-form" class="signin-form" novalidate>
+      <h2 data-t="signinTitle"></h2>
+      <div id="signin-error" class="error hidden" role="alert"></div>
+      <div class="field">
+        <label for="email" data-t="email"></label>
+        <input id="email" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password" data-t="password"></label>
+        <input id="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button id="signin-btn" class="btn-gold" type="submit" data-t="signinBtn"></button>
+    </form>
+
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button type="button" data-lang="de">Deutsch</button>
+      <button type="button" data-lang="en">English</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= APP ================= -->
+<div id="app" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="crest" width="40" height="40" aria-hidden="true"><use href="#crest"/></svg>
+      <div>
+        <div class="wordmark">ICTORV</div>
+        <small>Hotel Morgenstern</small>
+      </div>
+    </div>
+
+    <nav aria-label="Main">
+      <ul>
+        <li><button type="button" aria-current="page" data-view="rooms" data-t="navRooms"></button></li>
+        <li><button type="button" data-view="res" data-t="navReservations"></button></li>
+        <li><button type="button" data-view="checkin" data-t="navCheckin"></button></li>
+        <li><button type="button" data-view="inv" data-t="navInvoices"></button></li>
+       <li><button type="button" onclick="location.href='dashboard.html'"><span data-t="navDashboard"></span></button></li>
+      <li><button type="button" onclick="location.href='reports.html'"><span>Reports</span></button></li>
+      <li><button type="button" onclick="location.href='assistant.html'"><span>Assistant</span></button></li>
+      </ul>
+      </nav>
+
+    <div class="who">
+      <div>
+        <strong id="who-name"></strong>
+        <span id="who-role"></span>
+      </div>
+      <div class="who-actions">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="de">DE</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+        <button id="signout" class="link-btn" type="button" data-t="signout"></button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <section id="view-rooms">
+      <div class="page-head">
+        <div>
+          <h1 data-t="roomsTitle"></h1>
+          <p id="today"></p>
+        </div>
+      </div>
+      <div id="legend" class="legend" role="group"></div>
+      <div id="board"><p class="notice" data-t="loading"></p></div>
+    </section>
+
+    <section id="view-res" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1 data-t="resTitle"></h1>
+          <p data-t="resSub"></p>
+        </div>
+        <button type="button" id="new-res" class="btn-gold btn-inline" data-t="newRes"></button>
+      </div>
+      <p id="res-flash" class="flash hidden" role="status"></p>
+      <div id="res-filters" class="legend" role="group"></div>
+      <div id="res-list"></div>
+    </section>
+
+    <section id="view-inv" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1 data-t="invTitle"></h1>
+          <p data-t="invSub"></p>
+        </div>
+      </div>
+      <div id="inv-list"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Room status dialog -->
+<dialog id="room-dialog">
+  <h3 id="dlg-title"></h3>
+  <p id="dlg-sub" class="sub"></p>
+  <div id="dlg-options" class="status-options"></div>
+  <div id="dlg-error" class="error hidden" role="alert"></div>
+  <button type="button" class="link-btn" id="dlg-close" data-t="close"></button>
+</dialog>
+
+<!-- Check-in dialog (with Meldeschein for non-German guests) -->
+<dialog id="ci-dialog" class="wide">
+  <form id="ci-form" novalidate>
+    <h3 id="ci-title"></h3>
+    <p id="ci-sub" class="sub"></p>
+    <div id="ci-warn" class="info-box warn hidden"></div>
+    <div id="ci-error" class="error hidden" role="alert"></div>
+    <div id="ci-nomelde" class="info-box hidden" data-t="ciNoForm"></div>
+
+    <div id="ci-melde" class="melde hidden">
+      <h4 data-t="ciForm"></h4>
+      <p class="sub-line" data-t="ciFormHint"></p>
+      <div class="form-grid">
+        <div><label for="ci-dob" data-t="dob"></label><input id="ci-dob" type="date"></div>
+        <div><label for="ci-acc" data-t="accompanying"></label><input id="ci-acc" type="number" min="0" max="10"></div>
+        <div><label for="ci-doctype" data-t="docType"></label>
+          <select id="ci-doctype">
+            <option value="passport" data-t="docPassport"></option>
+            <option value="id_card" data-t="docId"></option>
+            <option value="other" data-t="docOther"></option>
+          </select>
+        </div>
+        <div><label for="ci-docno" data-t="docNumber"></label><input id="ci-docno" type="text" autocomplete="off"></div>
+        <div class="full"><label for="ci-street" data-t="street"></label><input id="ci-street" type="text" autocomplete="off"></div>
+        <div><label for="ci-postal" data-t="postal"></label><input id="ci-postal" type="text" autocomplete="off"></div>
+        <div><label for="ci-city" data-t="city"></label><input id="ci-city" type="text" autocomplete="off"></div>
+        <div class="full"><label for="ci-country" data-t="country"></label><select id="ci-country"></select></div>
+        <div class="full">
+          <div class="sig-row">
+            <label for="sig" data-t="signature"></label>
+            <button type="button" class="link-btn" id="sig-clear" data-t="clearSig"></button>
+          </div>
+          <canvas id="sig" class="sig-pad" aria-label="Signature"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="link-btn" id="ci-cancel" data-t="cancelForm"></button>
+      <button type="submit" class="btn-gold btn-inline" id="ci-save"></button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Folio dialog (check-out) -->
+<dialog id="folio-dialog" class="wide">
+  <h3 id="folio-title"></h3>
+  <p id="folio-sub" class="sub"></p>
+  <div id="folio-error" class="error hidden" role="alert"></div>
+  <div id="folio-body"></div>
+  <details class="extra">
+    <summary data-t="addExtra"></summary>
+    <div class="form-grid">
+      <div class="full"><label for="x-desc" data-t="extraDesc"></label><input id="x-desc" type="text" autocomplete="off"></div>
+      <div><label for="x-amount" data-t="extraAmount"></label><input id="x-amount" type="text" inputmode="decimal" autocomplete="off"></div>
+      <div><label for="x-vat" data-t="invVat"></label>
+        <select id="x-vat"><option value="19" data-t="vat19"></option><option value="7" data-t="vat7"></option></select>
+      </div>
+      <div class="full"><button type="button" class="btn-small outline" id="x-add" data-t="add"></button></div>
+    </div>
+  </details>
+  <div class="form-grid pay-row">
+    <div class="full"><label for="pay-method" data-t="payMethod"></label><select id="pay-method"></select></div>
+  </div>
+  <div class="form-actions">
+    <button type="button" class="link-btn" id="folio-close" data-t="keepOpen"></button>
+    <button type="button" class="btn-gold btn-inline" id="folio-pay"></button>
+  </div>
+</dialog>
+
+<!-- Invoice document dialog -->
+<dialog id="inv-dialog" class="doc">
+  <div id="inv-doc"></div>
+  <div class="form-actions">
+    <button type="button" class="link-btn" id="inv-close" data-t="close"></button>
+    <button type="button" class="btn-gold btn-inline" id="inv-print" data-t="print"></button>
+  </div>
+</dialog>
+<div id="print-root"></div>
+
+<!-- New reservation dialog -->
+<dialog id="res-dialog" class="wide">
+  <form id="res-form" novalidate>
+    <h3 data-t="newRes"></h3>
+    <div id="res-error" class="error hidden" role="alert"></div>
+    <div class="form-grid">
+      <div class="full">
+        <label for="f-guest" data-t="guest"></label>
+        <select id="f-guest"></select>
+      </div>
+      <div id="new-guest" class="new-guest hidden">
+        <div><label for="f-first" data-t="firstName"></label><input id="f-first" type="text" autocomplete="off"></div>
+        <div><label for="f-last" data-t="lastName"></label><input id="f-last" type="text" autocomplete="off"></div>
+        <div><label for="f-email" data-t="email"></label><input id="f-email" type="email" autocomplete="off"></div>
+        <div><label for="f-nationality" data-t="nationality"></label><select id="f-nationality"></select></div>
+      </div>
+      <div><label for="f-arrival" data-t="arrival"></label><input id="f-arrival" type="date"></div>
+      <div><label for="f-departure" data-t="departure"></label><input id="f-departure" type="date"></div>
+      <div><label for="f-adults" data-t="adults"></label><input id="f-adults" type="number" min="1" max="4"></div>
+      <div><label for="f-children" data-t="children"></label><input id="f-children" type="number" min="0" max="3"></div>
+      <div><label for="f-type" data-t="roomType"></label><select id="f-type"></select></div>
+      <div><label for="f-room" data-t="room"></label><select id="f-room"></select></div>
+      <div class="full"><label for="f-plan" data-t="ratePlan"></label><select id="f-plan"></select></div>
+      <div class="full"><label for="f-notes" data-t="notes"></label><input id="f-notes" type="text"></div>
+      <div id="f-summary" class="summary"></div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="link-btn" id="res-cancel" data-t="cancelForm"></button>
+      <button type="submit" class="btn-gold btn-inline" id="res-save" data-t="saveRes"></button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* ---------- Connection ---------- */
+const SUPABASE_URL = "https://blccrbiilztmothfrqqj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_r9Qrbyqg4lM3lpCo5C7vuw_AF8Fdl20";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- Texts (DE / EN) ---------- */
+const T = {
+  de: {
+    signinTitle: "Anmelden", email: "E-Mail", password: "Passwort", signinBtn: "Anmelden",
+    signingIn: "Anmeldung läuft …", badLogin: "E-Mail oder Passwort ist falsch. Bitte erneut versuchen.",
+    noProfile: "Dieses Konto hat noch kein Mitarbeiterprofil. Bitte die Direktion kontaktieren.",
+    navRooms: "Zimmerplan", navReservations: "Reservierungen", navCheckin: "Check-in", navInvoices: "Rechnungen",
+    navDashboard: "Übersicht", soon: "bald", signout: "Abmelden",
+    roomsTitle: "Zimmerplan", all: "Alle", loading: "Zimmer werden geladen …",
+    loadError: "Zimmer konnten nicht geladen werden: ", floor: "Etage", empty: "Keine Zimmer mit diesem Status.",
+    guests: "Pers.", changeStatus: "Status ändern", close: "Schließen", saveError: "Status konnte nicht gespeichert werden: ",
+    status: { clean: "Sauber", occupied: "Belegt", dirty: "Zu reinigen", inspected: "Kontrolliert", out_of_order: "Außer Betrieb" },
+    roles: { direktor: "Direktor/in", empfangsleitung: "Empfangsleitung", rezeption: "Rezeption", housekeeping: "Housekeeping", haustechnik: "Haustechnik" },
+    resTitle: "Reservierungen", resSub: "Buchungen anlegen, ansehen und stornieren.", newRes: "Neue Reservierung",
+    fUpcoming: "Anstehend", fToday: "Anreisen", fInhouse: "Im Haus", fAll: "Alle",
+    thRef: "Buchung", thGuest: "Gast", thRoom: "Zimmer", thStay: "Aufenthalt", thPlan: "Rate", thTotal: "Gesamt", thStatus: "Status",
+    noRes: "Keine Reservierungen in dieser Ansicht.", night: "Nacht", nights: "Nächte",
+    cancel: "Stornieren", confirmCancel: "Reservierung {ref} wirklich stornieren?", cancelled: "Reservierung {ref} wurde storniert.",
+    guest: "Gast", chooseGuest: "Gast wählen …", newGuest: "+ Neuer Gast", firstName: "Vorname", lastName: "Nachname",
+    nationality: "Staatsangehörigkeit", arrival: "Anreise", departure: "Abreise", adults: "Erwachsene", children: "Kinder",
+    roomType: "Zimmerkategorie", ratePlan: "Rate", room: "Zimmer", noRoomFree: "Kein freies Zimmer", notes: "Notizen",
+    breakfast: "Frühstück", total: "Gesamt", saveRes: "Reservierung anlegen", saving: "Wird gespeichert …", cancelForm: "Abbrechen",
+    loadingShort: "Lädt …", loadFail: "Daten konnten nicht geladen werden: ",
+    errGuest: "Bitte einen Gast wählen oder Vor- und Nachname eingeben.", errDates: "Die Abreise muss nach der Anreise liegen.",
+    errGuests: "Zu viele Personen für diese Zimmerkategorie (max. {n}).", errRoom: "Für diese Daten ist kein Zimmer dieser Kategorie frei. Bitte andere Daten oder Kategorie wählen.",
+    errBooked: "Dieses Zimmer wurde gerade für diesen Zeitraum belegt. Bitte ein anderes wählen.", errSave: "Reservierung konnte nicht gespeichert werden: ",
+    created: "Reservierung {ref} wurde angelegt.",
+    resStatus: { confirmed: "Bestätigt", checked_in: "Eingecheckt", checked_out: "Abgereist", cancelled: "Storniert", no_show: "No-Show" },
+    checkin: "Einchecken", checkout: "Auschecken", ciTitle: "Check-in",
+    ciNoForm: "Deutsche Staatsangehörigkeit: Seit 1. Januar 2025 ist kein Meldeschein erforderlich.",
+    ciForm: "Meldeschein (§§ 29–30 BMG)", ciFormHint: "Pflicht für Gäste ohne deutsche Staatsangehörigkeit. Ausweis prüfen und vom Gast unterschreiben lassen.",
+    dob: "Geburtsdatum", accompanying: "Mitreisende (Ehepartner, Kinder)", docType: "Ausweisdokument", docPassport: "Reisepass",
+    docId: "Personalausweis", docOther: "Sonstiges", docNumber: "Dokumentennummer", street: "Straße und Hausnummer",
+    postal: "PLZ", city: "Ort", country: "Land", signature: "Unterschrift des Gastes", clearSig: "Löschen",
+    ciSave: "Meldeschein speichern & einchecken", ciSaveSimple: "Gast einchecken",
+    ciDone: "{name} ist eingecheckt – Zimmer {room}.", coConfirm: "{name} aus Zimmer {room} auschecken?",
+    coDone: "{name} ist ausgecheckt. Zimmer {room} ist jetzt „Zu reinigen“.",
+    errMelde: "Bitte Geburtsdatum, Adresse, Dokumentennummer und Unterschrift ausfüllen.",
+    errNoRoom: "Dieser Reservierung ist kein Zimmer zugeordnet.", roomNotReady: "Hinweis: Zimmer {room} ist als „{status}“ markiert.",
+    ciErr: "Check-in fehlgeschlagen: ", coErr: "Check-out fehlgeschlagen: ",
+    guestOne: "Pers.",
+    invTitle: "Rechnungen", invSub: "Alle Rechnungen ansehen und drucken.",
+    noInv: "Noch keine Rechnungen. Rechnungen entstehen beim Check-out.",
+    thInvNo: "Rechnungsnr.", thDate: "Datum", view: "Anzeigen",
+    invStatus: { open: "Offen", paid: "Bezahlt", void: "Storniert" },
+    folioTitle: "Gastrechnung", invDesc: "Leistung", invQty: "Menge", invUnit: "Einzelpreis", invVat: "MwSt.",
+    net: "Netto", vatAmt: "MwSt.", gross: "Brutto", paidLabel: "Bezahlt", openAmt: "Offener Betrag",
+    addExtra: "+ Leistung hinzufügen (Bar, Minibar …)", extraDesc: "Beschreibung (z. B. Sternbar Getränke)",
+    extraAmount: "Betrag brutto (€)", vat7: "7 % – Speisen", vat19: "19 % – Getränke & Sonstiges", add: "Hinzufügen",
+    errExtra: "Bitte Beschreibung und einen Betrag größer 0 eingeben.",
+    payMethod: "Zahlungsart",
+    pm: { girocard: "girocard (EC-Karte)", visa: "Visa", mastercard: "Mastercard", cash: "Bar", invoice: "Auf Rechnung (Überweisung)" },
+    payAndCheckout: "{amount} kassieren & auschecken", checkoutOnly: "Auschecken",
+    keepOpen: "Schließen (Rechnung bleibt offen)", print: "Drucken / PDF",
+    invDoc: "Rechnung", invNo: "Rechnungsnummer", invDate: "Rechnungsdatum", bookingRef: "Buchungsnummer",
+    period: "Leistungszeitraum", vatTable: "Steuerausweis", paidVia: "Bezahlt am {date} per {method}",
+    thanks: "Vielen Dank für Ihren Aufenthalt im Hotel Morgenstern.", totalDue: "Rechnungsbetrag",
+    payTerms: "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
+    locale: "de-DE"
+  },
+  en: {
+    signinTitle: "Sign in", email: "Email", password: "Password", signinBtn: "Sign in",
+    signingIn: "Signing in …", badLogin: "Email or password is incorrect. Please try again.",
+    noProfile: "This account has no staff profile yet. Please contact the management.",
+    navRooms: "Room board", navReservations: "Reservations", navCheckin: "Check-in", navInvoices: "Invoices",
+    navDashboard: "Dashboard", soon: "soon", signout: "Sign out",
+    roomsTitle: "Room board", all: "All", loading: "Loading rooms …",
+    loadError: "Rooms could not be loaded: ", floor: "Floor", empty: "No rooms with this status.",
+    guests: "guests", changeStatus: "Change status", close: "Close", saveError: "Status could not be saved: ",
+    status: { clean: "Clean", occupied: "Occupied", dirty: "Needs cleaning", inspected: "Inspected", out_of_order: "Out of order" },
+    roles: { direktor: "Director", empfangsleitung: "Front office manager", rezeption: "Reception", housekeeping: "Housekeeping", haustechnik: "Maintenance" },
+    resTitle: "Reservations", resSub: "Create, view and cancel bookings.", newRes: "New reservation",
+    fUpcoming: "Upcoming", fToday: "Arrivals", fInhouse: "In house", fAll: "All",
+    thRef: "Booking", thGuest: "Guest", thRoom: "Room", thStay: "Stay", thPlan: "Rate", thTotal: "Total", thStatus: "Status",
+    noRes: "No reservations in this view.", night: "night", nights: "nights",
+    cancel: "Cancel", confirmCancel: "Cancel reservation {ref}?", cancelled: "Reservation {ref} was cancelled.",
+    guest: "Guest", chooseGuest: "Choose a guest …", newGuest: "+ New guest", firstName: "First name", lastName: "Last name",
+    nationality: "Nationality", arrival: "Arrival", departure: "Departure", adults: "Adults", children: "Children",
+    roomType: "Room type", ratePlan: "Rate", room: "Room", noRoomFree: "No room free", notes: "Notes",
+    breakfast: "Breakfast", total: "Total", saveRes: "Create reservation", saving: "Saving …", cancelForm: "Cancel",
+    loadingShort: "Loading …", loadFail: "Data could not be loaded: ",
+    errGuest: "Choose a guest, or enter a first and last name.", errDates: "Departure must be after arrival.",
+    errGuests: "Too many guests for this room type (max. {n}).", errRoom: "No room of this type is free for these dates. Choose other dates or another room type.",
+    errBooked: "This room was just booked for these dates. Please choose another one.", errSave: "Reservation could not be saved: ",
+    created: "Reservation {ref} was created.",
+    resStatus: { confirmed: "Confirmed", checked_in: "Checked in", checked_out: "Checked out", cancelled: "Cancelled", no_show: "No-show" },
+    checkin: "Check in", checkout: "Check out", ciTitle: "Check-in",
+    ciNoForm: "German citizen: since 1 January 2025 no registration form (Meldeschein) is required.",
+    ciForm: "Registration form · Meldeschein (§§ 29–30 BMG)", ciFormHint: "Required for guests without German citizenship. Check the ID and have the guest sign.",
+    dob: "Date of birth", accompanying: "Accompanying (spouse, children)", docType: "ID document", docPassport: "Passport",
+    docId: "ID card", docOther: "Other", docNumber: "Document number", street: "Street and number",
+    postal: "Postal code", city: "City", country: "Country", signature: "Guest signature", clearSig: "Clear",
+    ciSave: "Save form & check in", ciSaveSimple: "Check in guest",
+    ciDone: "{name} is checked in – room {room}.", coConfirm: "Check out {name} from room {room}?",
+    coDone: "{name} has checked out. Room {room} is now “Needs cleaning”.",
+    errMelde: "Fill in date of birth, address, document number and signature.",
+    errNoRoom: "This reservation has no room assigned.", roomNotReady: "Note: room {room} is marked “{status}”.",
+    ciErr: "Check-in failed: ", coErr: "Check-out failed: ",
+    guestOne: "guest",
+    invTitle: "Invoices", invSub: "View and print all invoices.",
+    noInv: "No invoices yet. Invoices are created at check-out.",
+    thInvNo: "Invoice no.", thDate: "Date", view: "View",
+    invStatus: { open: "Open", paid: "Paid", void: "Void" },
+    folioTitle: "Guest folio", invDesc: "Item", invQty: "Qty", invUnit: "Unit price", invVat: "VAT",
+    net: "Net", vatAmt: "VAT", gross: "Gross", paidLabel: "Paid", openAmt: "Balance due",
+    addExtra: "+ Add a charge (bar, minibar …)", extraDesc: "Description (e.g. Sternbar drinks)",
+    extraAmount: "Amount incl. VAT (€)", vat7: "7 % – food", vat19: "19 % – drinks & other", add: "Add",
+    errExtra: "Enter a description and an amount above 0.",
+    payMethod: "Payment method",
+    pm: { girocard: "girocard (EC card)", visa: "Visa", mastercard: "Mastercard", cash: "Cash", invoice: "On account (bank transfer)" },
+    payAndCheckout: "Take {amount} & check out", checkoutOnly: "Check out",
+    keepOpen: "Close (folio stays open)", print: "Print / PDF",
+    invDoc: "Invoice", invNo: "Invoice number", invDate: "Invoice date", bookingRef: "Booking reference",
+    period: "Service period", vatTable: "VAT breakdown", paidVia: "Paid on {date} by {method}",
+    thanks: "Thank you for staying at Hotel Morgenstern.", totalDue: "Invoice total",
+    payTerms: "Payable within 14 days without deduction.",
+    locale: "en-GB"
+  }
+};
+const STATUS_ORDER = ["clean", "occupied", "dirty", "inspected", "out_of_order"];
+const STATUS_COLOR = { clean: "var(--st-clean)", occupied: "var(--st-occupied)", dirty: "var(--st-dirty)", inspected: "var(--st-inspected)", out_of_order: "var(--st-ooo)" };
+
+let lang = "de";
+try { lang = localStorage.getItem("ictorv-lang") || "de"; } catch (e) {}
+let profile = null;
+let rooms = [];
+let filter = "all";
+let openRoom = null;
+
+const $ = (id) => document.getElementById(id);
+const t = (k) => T[lang][k];
+
+/* ---------- Language ---------- */
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+  $("today").textContent = new Date().toLocaleDateString(t("locale"), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  if (profile) {
+    $("who-role").textContent = T[lang].roles[profile.role] || profile.role;
+    renderBoard();
+    renderReservations();
+    renderInvoices();
+  }
+}
+document.querySelectorAll("[data-lang]").forEach(b => b.addEventListener("click", () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem("ictorv-lang", lang); } catch (e) {}
+  applyLang();
+}));
+
+/* ---------- Sign in / out ---------- */
+function showError(msg) { const e = $("signin-error"); e.textContent = msg; e.classList.remove("hidden"); }
+
+$("signin-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  $("signin-error").classList.add("hidden");
+  const btn = $("signin-btn");
+  btn.disabled = true; btn.textContent = t("signingIn");
+  const { error } = await db.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+  btn.disabled = false; btn.textContent = t("signinBtn");
+  if (error) { showError(t("badLogin")); return; }
+  await startApp();
+});
+
+$("signout").addEventListener("click", async () => {
+  await db.auth.signOut();
+  profile = null;
+  $("app").classList.add("hidden");
+  $("signin").classList.remove("hidden");
+  $("password").value = "";
+});
+
+async function startApp() {
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) { $("signin").classList.remove("hidden"); return; }
+
+  const { data, error } = await db.from("staff_profiles").select("full_name, role, language").eq("id", user.id).maybeSingle();
+  if (error || !data) {
+    await db.auth.signOut();
+    $("signin").classList.remove("hidden");
+    showError(t("noProfile"));
+    return;
+  }
+  profile = data;
+  $("who-name").textContent = data.full_name;
+  $("signin").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  applyLang();
+  await loadRef();
+  await loadRooms();
+}
+
+/* ---------- Room board ---------- */
+async function loadRooms() {
+  const { data, error } = await db.from("rooms")
+    .select("number, floor, status, room_type, room_types(name_de, name_en, max_guests)")
+    .order("number");
+  if (error) { $("board").innerHTML = `<p class="notice">${t("loadError")}${escapeHtml(error.message)}</p>`; return; }
+  rooms = data;
+  renderBoard();
+}
+
+function renderBoard() {
+  // Legend / filter with live counts
+  const counts = Object.fromEntries(STATUS_ORDER.map(s => [s, rooms.filter(r => r.status === s).length]));
+  const legend = $("legend");
+  legend.innerHTML = "";
+  const mk = (key, label, count, color) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", filter === key);
+    b.innerHTML = (color ? `<span class="dot" style="background:${color}"></span>` : "") + `${label} <b>${count}</b>`;
+    b.addEventListener("click", () => { filter = key; renderBoard(); });
+    legend.appendChild(b);
+  };
+  mk("all", t("all"), rooms.length);
+  STATUS_ORDER.forEach(s => mk(s, T[lang].status[s], counts[s], STATUS_COLOR[s]));
+
+  // Rooms grouped by floor
+  const shown = filter === "all" ? rooms : rooms.filter(r => r.status === filter);
+  const board = $("board");
+  board.innerHTML = "";
+  if (!shown.length) { board.innerHTML = `<p class="notice">${t("empty")}</p>`; return; }
+
+  [...new Set(shown.map(r => r.floor))].sort((a, b) => a - b).forEach(floor => {
+    const sec = document.createElement("section");
+    sec.className = "floor";
+    sec.innerHTML = `<h2>${t("floor")} ${floor}</h2>`;
+    const grid = document.createElement("div");
+    grid.className = "rooms";
+    shown.filter(r => r.floor === floor).forEach(r => {
+      const typeName = lang === "de" ? r.room_types.name_de : r.room_types.name_en;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "room";
+      b.style.setProperty("--c", STATUS_COLOR[r.status]);
+      b.innerHTML = `<span class="num">${r.number}</span>
+        <span class="type">${typeName} · ${persons(r.room_types.max_guests)}</span>
+        <span class="st"><span class="dot"></span>${T[lang].status[r.status]}</span>`;
+      b.addEventListener("click", () => openDialog(r));
+      grid.appendChild(b);
+    });
+    sec.appendChild(grid);
+    board.appendChild(sec);
+  });
+}
+
+/* ---------- Change room status ---------- */
+function openDialog(room) {
+  openRoom = room;
+  $("dlg-title").textContent = room.number;
+  $("dlg-sub").textContent = (lang === "de" ? room.room_types.name_de : room.room_types.name_en) + " · " + t("changeStatus");
+  $("dlg-error").classList.add("hidden");
+  const box = $("dlg-options");
+  box.innerHTML = "";
+  STATUS_ORDER.forEach(s => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", room.status === s);
+    b.innerHTML = `<span class="dot" style="background:${STATUS_COLOR[s]}"></span>${T[lang].status[s]}`;
+    b.addEventListener("click", () => saveStatus(s));
+    box.appendChild(b);
+  });
+  $("room-dialog").showModal();
+}
+
+async function saveStatus(status) {
+  if (!openRoom || openRoom.status === status) { $("room-dialog").close(); return; }
+  const { error } = await db.from("rooms").update({ status }).eq("number", openRoom.number);
+  if (error) {
+    const e = $("dlg-error"); e.textContent = t("saveError") + error.message; e.classList.remove("hidden");
+    return;
+  }
+  openRoom.status = status;
+  $("room-dialog").close();
+  renderBoard();
+}
+$("dlg-close").addEventListener("click", () => $("room-dialog").close());
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+/* ---------- Helpers ---------- */
+const money = (n) => new Intl.NumberFormat(t("locale"), { style: "currency", currency: "EUR" }).format(n);
+const fmtDate = (s) => new Date(s + "T00:00:00").toLocaleDateString(t("locale"), { day: "2-digit", month: "2-digit", year: "numeric" });
+const isoToday = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+const addDays = (s, n) => { const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const nightsBetween = (a, b) => Math.round((new Date(b + "T00:00:00Z") - new Date(a + "T00:00:00Z")) / 86400000);
+const countryName = (c) => { try { return new Intl.DisplayNames([t("locale")], { type: "region" }).of(c); } catch (e) { return c; } };
+const fill = (s, o) => s.replace(/\{(\w+)\}/g, (_, k) => o[k]);
+const persons = (n) => `${n} ${n === 1 ? t("guestOne") : t("guests")}`;
+const nameOf = (x) => x ? (lang === "de" ? x.name_de : x.name_en) : "";
+const NATIONS = ["DE","AT","CH","FR","IT","ES","NL","BE","PL","CZ","GB","IE","SE","DK","US","CA","BR","TR","AE","IN","CN","JP","KR","AU","NG","GH","ZA"];
+
+/* ---------- Navigation ---------- */
+let view = "rooms";
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+function showView(v) {
+  view = v;
+  document.querySelectorAll("[data-view]").forEach(b => {
+    if (b.dataset.view === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
+  if (v === "checkin") resFilter = "today";
+  $("view-rooms").classList.toggle("hidden", v !== "rooms");
+  $("view-res").classList.toggle("hidden", !(v === "res" || v === "checkin"));
+  $("view-inv").classList.toggle("hidden", v !== "inv");
+  if (v === "rooms") loadRooms();
+  else if (v === "inv") loadInvoices();
+  else loadReservations();
+}
+
+/* ---------- Reference data (room types, rates, seasons, guests) ---------- */
+const ref = { roomTypes: [], ratePlans: [], seasons: [], guests: [], breakfastPrice: 28 };
+async function loadRef() {
+  const [rt, rp, se, gu, bp] = await Promise.all([
+    db.from("room_types").select("*").order("sort_order"),
+    db.from("rate_plans").select("*"),
+    db.from("seasons").select("*"),
+    db.from("guests").select("id, first_name, last_name, nationality").order("last_name"),
+    db.from("settings").select("value").eq("key", "breakfast_price").maybeSingle()
+  ]);
+  ref.roomTypes = rt.data || [];
+  ref.ratePlans = rp.data || [];
+  ref.seasons = se.data || [];
+  ref.guests = gu.data || [];
+  if (bp.data) ref.breakfastPrice = Number(bp.data.value);
+}
+
+/* ---------- Pricing: season per night, plan discount, breakfast ---------- */
+function priceFor(typeCode, planCode, arrival, departure, persons) {
+  const type = ref.roomTypes.find(x => x.code === typeCode);
+  const plan = ref.ratePlans.find(x => x.code === planCode);
+  const nights = arrival && departure ? nightsBetween(arrival, departure) : 0;
+  if (!type || !plan || nights < 1) return null;
+  let sum = 0;
+  for (let i = 0; i < nights; i++) {
+    const d = addDays(arrival, i);
+    const season = ref.seasons.find(s => d >= s.start_date && d <= s.end_date);
+    sum += Number(type.base_rate) * (season ? Number(season.multiplier) : 1);
+  }
+  const nightly = Math.round((sum / nights) * (1 - Number(plan.discount_pct) / 100) * 100) / 100;
+  const breakfast = plan.breakfast_included ? ref.breakfastPrice * persons * nights : 0;
+  return { nights, nightly, breakfast, total: Math.round((nightly * nights + breakfast) * 100) / 100 };
+}
+function resTotal(r) {
+  const nights = nightsBetween(r.arrival, r.departure);
+  const plan = ref.ratePlans.find(p => p.code === r.rate_plan);
+  const breakfast = plan && plan.breakfast_included ? ref.breakfastPrice * (r.adults + r.children) * nights : 0;
+  return Number(r.nightly_rate) * nights + breakfast;
+}
+
+/* ---------- Reservations list ---------- */
+let reservations = null;
+let resFilter = "upcoming";
+const RES_COLOR = { confirmed: "var(--st-inspected)", checked_in: "var(--st-occupied)", checked_out: "var(--st-ooo)", cancelled: "var(--st-dirty)", no_show: "var(--st-dirty)" };
+
+async function loadReservations() {
+  if (!reservations) $("res-list").innerHTML = `<p class="notice">${t("loadingShort")}</p>`;
+  const { data, error } = await db.from("reservations")
+    .select("id, guest_id, booking_ref, arrival, departure, adults, children, nightly_rate, status, room_number, room_type, rate_plan, guests(first_name, last_name, nationality)")
+    .order("arrival").order("id");
+  if (error) { $("res-list").innerHTML = `<p class="notice">${t("loadFail")}${escapeHtml(error.message)}</p>`; return; }
+  reservations = data;
+  renderReservations();
+}
+
+function renderReservations() {
+  if (!reservations) return;
+  const today = isoToday();
+  const groups = {
+    upcoming: r => r.status === "confirmed" && r.departure > today,
+    today: r => r.status === "confirmed" && r.arrival <= today && r.departure > today,
+    inhouse: r => r.status === "checked_in",
+    all: () => true
+  };
+
+  const f = $("res-filters");
+  f.innerHTML = "";
+  [["upcoming", "fUpcoming"], ["today", "fToday"], ["inhouse", "fInhouse"], ["all", "fAll"]].forEach(([k, label]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", resFilter === k);
+    b.innerHTML = `${t(label)} <b>${reservations.filter(groups[k]).length}</b>`;
+    b.addEventListener("click", () => { resFilter = k; renderReservations(); });
+    f.appendChild(b);
+  });
+
+  const rows = reservations.filter(groups[resFilter]);
+  if (!rows.length) { $("res-list").innerHTML = `<p class="notice">${t("noRes")}</p>`; return; }
+
+  let html = `<div class="table-wrap"><table><thead><tr>
+    <th>${t("thRef")}</th><th>${t("thGuest")}</th><th>${t("thRoom")}</th><th>${t("thStay")}</th>
+    <th>${t("thPlan")}</th><th class="num-col">${t("thTotal")}</th><th>${t("thStatus")}</th><th></th>
+  </tr></thead><tbody>`;
+  rows.forEach(r => {
+    const n = nightsBetween(r.arrival, r.departure);
+    const g = r.guests || { first_name: "?", last_name: "?", nationality: "" };
+    html += `<tr>
+      <td class="ref">${escapeHtml(r.booking_ref)}</td>
+      <td>${escapeHtml(g.last_name)}, ${escapeHtml(g.first_name)}<span class="sub-line">${escapeHtml(countryName(g.nationality))}</span></td>
+      <td>${escapeHtml(r.room_number || "–")}<span class="sub-line">${escapeHtml(nameOf(ref.roomTypes.find(x => x.code === r.room_type)))}</span></td>
+      <td>${fmtDate(r.arrival)} – ${fmtDate(r.departure)}<span class="sub-line">${n} ${n === 1 ? t("night") : t("nights")} · ${persons(r.adults + r.children)}</span></td>
+      <td>${escapeHtml(nameOf(ref.ratePlans.find(p => p.code === r.rate_plan)))}</td>
+      <td class="num-col">${money(resTotal(r))}</td>
+      <td><span class="badge"><span class="dot" style="background:${RES_COLOR[r.status]}"></span>${T[lang].resStatus[r.status]}</span></td>
+      <td><div class="actions">${rowActions(r, today)}</div></td>
+    </tr>`;
+  });
+  html += "</tbody></table></div>";
+  $("res-list").innerHTML = html;
+  $("res-list").querySelectorAll("[data-cancel]").forEach(b => b.addEventListener("click", () => cancelRes(Number(b.dataset.cancel))));
+  $("res-list").querySelectorAll("[data-checkin]").forEach(b => b.addEventListener("click", () => openCheckin(Number(b.dataset.checkin))));
+  $("res-list").querySelectorAll("[data-checkout]").forEach(b => b.addEventListener("click", () => openFolio(Number(b.dataset.checkout))));
+  $("res-list").querySelectorAll("[data-noshow]").forEach(b => b.addEventListener("click", () => noShowRes(Number(b.dataset.noshow))));
+}
+
+function rowActions(r, today) {
+  let a = "";
+  if (r.status === "confirmed" && r.arrival <= today && r.departure > today)
+    a += `<button type="button" class="btn-small" data-checkin="${r.id}">${t("checkin")}</button>`;
+  if (r.status === "confirmed")
+    a += `<button type="button" class="link-btn" data-cancel="${r.id}">${t("cancel")}</button>`;
+  if (r.status === "confirmed" && r.arrival < today)
+    a += `<button type="button" class="link-btn" data-noshow="${r.id}">No-show</button>`;
+  if (r.status === "checked_in")
+    a += `<button type="button" class="btn-small outline" data-checkout="${r.id}">${t("checkout")}</button>`;
+  return a;
+}
+
+function flash(msg) {
+  const f = $("res-flash");
+  f.textContent = msg;
+  f.classList.remove("hidden");
+  clearTimeout(flash.timer);
+  flash.timer = setTimeout(() => f.classList.add("hidden"), 6000);
+}
+
+async function cancelRes(id) {
+  const r = reservations.find(x => x.id === id);
+  if (!confirm(fill(t("confirmCancel"), { ref: r.booking_ref }))) return;
+  const { error } = await db.from("reservations").update({ status: "cancelled" }).eq("id", id);
+  if (error) { alert(t("errSave") + error.message); return; }
+  flash(fill(t("cancelled"), { ref: r.booking_ref }));
+  loadReservations();
+}
+
+async function noShowRes(id) {
+  const r = reservations.find(x => x.id === id);
+  if (!confirm(`Mark ${r.booking_ref} as no-show? The guest never arrived.`)) return;
+  const { error } = await db.from("reservations").update({ status: "no_show" }).eq("id", id);
+  if (error) { alert(t("errSave") + error.message); return; }
+  flash(`${r.booking_ref} marked as no-show. The room is free again.`);
+  loadReservations();
+}
+
+/* ---------- New reservation form ---------- */
+$("new-res").addEventListener("click", openResForm);
+$("res-cancel").addEventListener("click", () => $("res-dialog").close());
+
+function fillGuestSelect(selectedId) {
+  $("f-guest").innerHTML =
+    `<option value="">${t("chooseGuest")}</option>` +
+    ref.guests.map(x => `<option value="${x.id}">${escapeHtml(x.last_name)}, ${escapeHtml(x.first_name)} (${escapeHtml(x.nationality)})</option>`).join("") +
+    `<option value="new">${t("newGuest")}</option>`;
+  $("f-guest").value = selectedId ? String(selectedId) : "";
+}
+
+function openResForm() {
+  $("res-form").reset();
+  $("res-error").classList.add("hidden");
+  fillGuestSelect();
+  $("f-nationality").innerHTML = NATIONS.map(c => `<option value="${c}">${escapeHtml(countryName(c))}</option>`).join("");
+  $("f-type").innerHTML = ref.roomTypes.map(x => `<option value="${x.code}">${escapeHtml(nameOf(x))} · ${money(x.base_rate)}</option>`).join("");
+  $("f-plan").innerHTML = ref.ratePlans.map(x => `<option value="${x.code}">${escapeHtml(nameOf(x))}</option>`).join("");
+  $("f-type").value = "DZ";
+  $("f-arrival").value = isoToday();
+  $("f-arrival").min = isoToday();
+  $("f-departure").value = addDays(isoToday(), 1);
+  $("f-adults").value = 1;
+  $("f-children").value = 0;
+  $("new-guest").classList.add("hidden");
+  $("res-dialog").showModal();
+  updateRooms();
+}
+
+$("f-guest").addEventListener("change", e => $("new-guest").classList.toggle("hidden", e.target.value !== "new"));
+["f-arrival", "f-departure", "f-type"].forEach(id => $(id).addEventListener("change", updateRooms));
+["f-plan", "f-adults", "f-children"].forEach(id => $(id).addEventListener("input", updateSummary));
+
+// Finds rooms of the chosen type that are not out of order and not booked for the dates
+let roomRequest = 0;
+async function updateRooms() {
+  const a = $("f-arrival").value;
+  if (a && (!$("f-departure").value || $("f-departure").value <= a)) $("f-departure").value = addDays(a, 1);
+  if (a) $("f-departure").min = addDays(a, 1);
+  const d = $("f-departure").value;
+  const type = $("f-type").value;
+  const sel = $("f-room");
+  sel.innerHTML = `<option value="">${t("loadingShort")}</option>`;
+  updateSummary();
+  if (!a || !d) return;
+
+  const req = ++roomRequest;
+  const [rRooms, rBusy] = await Promise.all([
+    db.from("rooms").select("number, status").eq("room_type", type).order("number"),
+    db.from("reservations").select("room_number").in("status", ["confirmed", "checked_in"]).lt("arrival", d).gt("departure", a)
+  ]);
+  if (req !== roomRequest) return; // a newer search started meanwhile
+  const taken = new Set((rBusy.data || []).map(x => x.room_number));
+  const free = (rRooms.data || []).filter(r => r.status !== "out_of_order" && !taken.has(r.number));
+  sel.innerHTML = free.length
+    ? free.map(r => `<option value="${r.number}">${r.number}</option>`).join("")
+    : `<option value="">${t("noRoomFree")}</option>`;
+}
+
+function updateSummary() {
+  const persons = Number($("f-adults").value || 0) + Number($("f-children").value || 0);
+  const p = priceFor($("f-type").value, $("f-plan").value, $("f-arrival").value, $("f-departure").value, persons);
+  const box = $("f-summary");
+  if (!p) { box.innerHTML = ""; return; }
+  box.innerHTML =
+    `<div class="row"><span>${p.nights} ${p.nights === 1 ? t("night") : t("nights")} × ${money(p.nightly)}</span><span>${money(p.nightly * p.nights)}</span></div>` +
+    (p.breakfast ? `<div class="row"><span>${t("breakfast")} · ${persons} × ${p.nights} × ${money(ref.breakfastPrice)}</span><span>${money(p.breakfast)}</span></div>` : "") +
+    `<div class="row total"><span>${t("total")}</span><span>${money(p.total)}</span></div>`;
+}
+
+$("res-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const showErr = (m) => { const e = $("res-error"); e.textContent = m; e.classList.remove("hidden"); e.scrollIntoView({ block: "nearest" }); };
+  $("res-error").classList.add("hidden");
+
+  const guestSel = $("f-guest").value;
+  const a = $("f-arrival").value, d = $("f-departure").value;
+  const adults = Number($("f-adults").value), children = Number($("f-children").value);
+  const type = ref.roomTypes.find(x => x.code === $("f-type").value);
+  const plan = $("f-plan").value;
+  const room = $("f-room").value;
+
+  if (!guestSel || (guestSel === "new" && (!$("f-first").value.trim() || !$("f-last").value.trim()))) return showErr(t("errGuest"));
+  if (!a || !d || d <= a) return showErr(t("errDates"));
+  if (adults < 1 || adults + children > type.max_guests) return showErr(fill(t("errGuests"), { n: type.max_guests }));
+  if (!room) return showErr(t("errRoom"));
+
+  const btn = $("res-save");
+  btn.disabled = true;
+  btn.textContent = t("saving");
+  try {
+    let guestId = Number(guestSel);
+    if (guestSel === "new") {
+      const newGuest = {
+        first_name: $("f-first").value.trim(),
+        last_name: $("f-last").value.trim(),
+        email: $("f-email").value.trim() || null,
+        nationality: $("f-nationality").value
+      };
+      const { data, error } = await db.from("guests").insert(newGuest).select("id, first_name, last_name, nationality").single();
+      if (error) throw error;
+      guestId = data.id;
+      // Keep the new guest selected, so a retry does not create them twice
+      ref.guests.push(data);
+      ref.guests.sort((x, y) => x.last_name.localeCompare(y.last_name));
+      fillGuestSelect(data.id);
+      $("new-guest").classList.add("hidden");
+    }
+
+    const p = priceFor(type.code, plan, a, d, adults + children);
+    const { data: res, error } = await db.from("reservations").insert({
+      guest_id: guestId, room_number: room, room_type: type.code, rate_plan: plan,
+      arrival: a, departure: d, adults, children, nightly_rate: p.nightly,
+      notes: $("f-notes").value.trim() || null
+    }).select("booking_ref").single();
+    if (error) throw error;
+
+    $("res-dialog").close();
+    resFilter = "upcoming";
+    flash(fill(t("created"), { ref: res.booking_ref }));
+    loadReservations();
+  } catch (e) {
+    if (e.code === "23P01") { showErr(t("errBooked")); updateRooms(); }
+    else showErr(t("errSave") + (e.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t("saveRes");
+  }
+});
+
+/* ---------- Check-in with Meldeschein ---------- */
+let ciRes = null;
+let ciNeedsForm = false;
+const guestName = (r) => r.guests ? `${r.guests.first_name} ${r.guests.last_name}` : "";
+
+async function openCheckin(id) {
+  const r = reservations.find(x => x.id === id);
+  ciRes = r;
+  $("ci-form").reset();
+  ["ci-error", "ci-warn", "ci-nomelde", "ci-melde"].forEach(x => $(x).classList.add("hidden"));
+  $("ci-title").textContent = `${t("ciTitle")} · ${r.booking_ref}`;
+  $("ci-sub").textContent = `${guestName(r)} · ${t("room")} ${r.room_number || "–"} · ${fmtDate(r.arrival)} – ${fmtDate(r.departure)}`;
+
+  const [gRes, roomRes] = await Promise.all([
+    db.from("guests").select("*").eq("id", r.guest_id).single(),
+    r.room_number ? db.from("rooms").select("status").eq("number", r.room_number).single() : Promise.resolve({ data: null })
+  ]);
+  if (gRes.error) { alert(t("ciErr") + gRes.error.message); return; }
+  const guest = gRes.data;
+
+  // The law: Meldeschein only for guests WITHOUT German citizenship
+  ciNeedsForm = guest.nationality !== "DE";
+  $("ci-save").textContent = ciNeedsForm ? t("ciSave") : t("ciSaveSimple");
+  $(ciNeedsForm ? "ci-melde" : "ci-nomelde").classList.remove("hidden");
+
+  const room = roomRes.data;
+  if (room && !["clean", "inspected"].includes(room.status)) {
+    $("ci-warn").textContent = fill(t("roomNotReady"), { room: r.room_number, status: T[lang].status[room.status] });
+    $("ci-warn").classList.remove("hidden");
+  }
+
+  if (ciNeedsForm) {
+    $("ci-country").innerHTML = NATIONS.map(c => `<option value="${c}">${escapeHtml(countryName(c))}</option>`).join("");
+    $("ci-country").value = guest.country || guest.nationality;
+    $("ci-dob").value = guest.date_of_birth || "";
+    $("ci-street").value = guest.street || "";
+    $("ci-postal").value = guest.postal_code || "";
+    $("ci-city").value = guest.city || "";
+    $("ci-acc").value = Math.max(0, r.adults + r.children - 1);
+  }
+  $("ci-dialog").showModal();
+  if (ciNeedsForm) setupSig(); // after showModal, so the canvas has its real size
+}
+$("ci-cancel").addEventListener("click", () => $("ci-dialog").close());
+
+// Signature pad (works with mouse, finger and pen)
+const sig = { ctx: null, drawing: false, hasInk: false };
+function setupSig() {
+  const c = $("sig");
+  const ratio = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  c.width = Math.round(rect.width * ratio);
+  c.height = Math.round(rect.height * ratio);
+  const ctx = c.getContext("2d");
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = "#07090F";
+  sig.ctx = ctx;
+  sig.hasInk = false;
+}
+const sigPos = (e) => { const r = $("sig").getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+$("sig").addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  sig.drawing = true;
+  $("sig").setPointerCapture(e.pointerId);
+  const [x, y] = sigPos(e);
+  sig.ctx.beginPath();
+  sig.ctx.moveTo(x, y);
+  sig.ctx.lineTo(x + 0.1, y + 0.1);
+  sig.ctx.stroke();
+  sig.hasInk = true;
+});
+$("sig").addEventListener("pointermove", (e) => {
+  if (!sig.drawing) return;
+  const [x, y] = sigPos(e);
+  sig.ctx.lineTo(x, y);
+  sig.ctx.stroke();
+});
+["pointerup", "pointercancel"].forEach(ev => $("sig").addEventListener(ev, () => { sig.drawing = false; }));
+$("sig-clear").addEventListener("click", setupSig);
+
+$("ci-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const showErr = (m) => { const e = $("ci-error"); e.textContent = m; e.classList.remove("hidden"); e.scrollIntoView({ block: "nearest" }); };
+  $("ci-error").classList.add("hidden");
+  const r = ciRes;
+  if (!r.room_number) return showErr(t("errNoRoom"));
+
+  const f = {
+    dob: $("ci-dob").value, street: $("ci-street").value.trim(), postal: $("ci-postal").value.trim(),
+    city: $("ci-city").value.trim(), country: $("ci-country").value, docType: $("ci-doctype").value,
+    docNo: $("ci-docno").value.trim(), acc: Number($("ci-acc").value || 0)
+  };
+  if (ciNeedsForm && (!f.dob || !f.street || !f.postal || !f.city || !f.docNo || !sig.hasInk)) return showErr(t("errMelde"));
+
+  const btn = $("ci-save");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t("saving");
+  try {
+    if (ciNeedsForm) {
+      let { error } = await db.from("guests").update({
+        date_of_birth: f.dob, street: f.street, postal_code: f.postal, city: f.city, country: f.country
+      }).eq("id", r.guest_id);
+      if (error) throw error;
+      ({ error } = await db.from("registration_forms").insert({
+        reservation_id: r.id, guest_id: r.guest_id, id_document_type: f.docType, id_document_number: f.docNo,
+        accompanying_count: f.acc, signature: $("sig").toDataURL("image/png"), signed_at: new Date().toISOString()
+      }));
+      if (error) throw error;
+    }
+    let { error } = await db.from("reservations").update({ status: "checked_in" }).eq("id", r.id);
+    if (error) throw error;
+    ({ error } = await db.from("rooms").update({ status: "occupied" }).eq("number", r.room_number));
+    if (error) throw error;
+
+    $("ci-dialog").close();
+    resFilter = "inhouse";
+    flash(fill(t("ciDone"), { name: guestName(r), room: r.room_number }));
+    loadReservations();
+  } catch (e) {
+    showErr(t("ciErr") + (e.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+});
+
+/* ---------- Folio, payment & check-out ---------- */
+const round2 = (n) => Math.round(n * 100) / 100;
+const fmtQty = (q) => Number(q) % 1 ? String(Number(q)).replace(".", t("locale") === "de-DE" ? "," : ".") : String(Number(q));
+const PAY_METHODS = ["girocard", "visa", "mastercard", "cash", "invoice"];
+
+// Gross amounts per VAT rate → net, VAT, gross (prices in Germany are always shown incl. VAT)
+function invoiceTotals(items, payments = []) {
+  const byRate = {};
+  items.forEach(i => { byRate[Number(i.vat_rate)] = (byRate[Number(i.vat_rate)] || 0) + Number(i.quantity) * Number(i.unit_price_gross); });
+  const rates = Object.keys(byRate).map(Number).sort((a, b) => a - b).map(rate => {
+    const gross = round2(byRate[rate]);
+    const net = round2(gross / (1 + rate / 100));
+    return { rate, gross, net, vat: round2(gross - net) };
+  });
+  const total = round2(rates.reduce((sum, x) => sum + x.gross, 0));
+  const paid = round2(payments.reduce((sum, p) => sum + Number(p.amount), 0));
+  return { rates, total, paid, open: round2(total - paid) };
+}
+
+let folio = null;
+function folioErr(msg) { const e = $("folio-error"); e.textContent = msg; e.classList.remove("hidden"); }
+
+async function openFolio(id) {
+  const r = reservations.find(x => x.id === id);
+  // Re-use an open invoice for this stay, otherwise create one with the stay and breakfast
+  const found = await db.from("invoices").select("id, invoice_number, status")
+    .eq("reservation_id", r.id).neq("status", "void").order("id").limit(1);
+  if (found.error) { alert(t("coErr") + found.error.message); return; }
+  let inv = found.data[0];
+
+  if (!inv) {
+    const created = await db.from("invoices").insert({ reservation_id: r.id }).select("id, invoice_number, status").single();
+    if (created.error) { alert(t("coErr") + created.error.message); return; }
+    inv = created.data;
+    const nights = nightsBetween(r.arrival, r.departure);
+    const persons = r.adults + r.children;
+    const type = ref.roomTypes.find(x => x.code === r.room_type);
+    const plan = ref.ratePlans.find(x => x.code === r.rate_plan);
+    const items = [{
+      invoice_id: inv.id, service_date: r.arrival,
+      description: `Übernachtung / Accommodation · Zimmer ${r.room_number} (${type ? type.name_de : r.room_type})`,
+      quantity: nights, unit_price_gross: r.nightly_rate, vat_rate: 7
+    }];
+    if (plan && plan.breakfast_included) items.push({
+      invoice_id: inv.id, service_date: r.arrival,
+      description: `Frühstück / Breakfast · ${persons} × ${nights}`,
+      quantity: persons * nights, unit_price_gross: ref.breakfastPrice, vat_rate: 7
+    });
+    const ins = await db.from("invoice_items").insert(items);
+    if (ins.error) { alert(t("coErr") + ins.error.message); return; }
+  }
+
+  folio = { res: r, invoice: inv, items: [], payments: [] };
+  $("folio-error").classList.add("hidden");
+  $("x-desc").value = "";
+  $("x-amount").value = "";
+  $("pay-method").innerHTML = PAY_METHODS.map(m => `<option value="${m}">${escapeHtml(T[lang].pm[m])}</option>`).join("");
+  await refreshFolio();
+  $("folio-dialog").showModal();
+}
+
+async function refreshFolio() {
+  const [it, pay] = await Promise.all([
+    db.from("invoice_items").select("*").eq("invoice_id", folio.invoice.id).order("id"),
+    db.from("payments").select("*").eq("invoice_id", folio.invoice.id).order("id")
+  ]);
+  folio.items = it.data || [];
+  folio.payments = pay.data || [];
+  renderFolio();
+}
+
+function renderFolio() {
+  const { res: r, invoice, items, payments } = folio;
+  const tot = invoiceTotals(items, payments);
+  $("folio-title").textContent = `${t("folioTitle")} · ${invoice.invoice_number}`;
+  $("folio-sub").textContent = `${guestName(r)} · ${t("room")} ${r.room_number} · ${fmtDate(r.arrival)} – ${fmtDate(r.departure)}`;
+
+  let h = `<div class="table-wrap"><table class="folio-table"><thead><tr>
+    <th>${t("invDesc")}</th><th class="num-col">${t("invQty")}</th><th class="num-col">${t("invUnit")}</th>
+    <th class="num-col">${t("invVat")}</th><th class="num-col">${t("total")}</th></tr></thead><tbody>`;
+  items.forEach(i => {
+    h += `<tr><td>${escapeHtml(i.description)}</td><td class="num-col">${fmtQty(i.quantity)}</td>
+      <td class="num-col">${money(i.unit_price_gross)}</td><td class="num-col">${Number(i.vat_rate)} %</td>
+      <td class="num-col">${money(Number(i.quantity) * Number(i.unit_price_gross))}</td></tr>`;
+  });
+  h += `</tbody></table></div><div class="summary">`;
+  tot.rates.forEach(x => {
+    h += `<div class="row muted"><span>${t("net")} ${x.rate} % ${money(x.net)} + ${t("vatAmt")} ${money(x.vat)}</span><span>${money(x.gross)}</span></div>`;
+  });
+  if (tot.paid > 0) h += `<div class="row"><span>${t("paidLabel")}</span><span>− ${money(tot.paid)}</span></div>`;
+  h += `<div class="row total"><span>${tot.paid > 0 ? t("openAmt") : t("total")}</span><span>${money(Math.max(tot.open, 0))}</span></div></div>`;
+  $("folio-body").innerHTML = h;
+  $("folio-pay").textContent = tot.open > 0 ? fill(t("payAndCheckout"), { amount: money(tot.open) }) : t("checkoutOnly");
+}
+
+$("x-add").addEventListener("click", async () => {
+  $("folio-error").classList.add("hidden");
+  const desc = $("x-desc").value.trim();
+  const amount = round2(Number($("x-amount").value.replace(/\s/g, "").replace(",", ".")));
+  if (!desc || !(amount > 0)) return folioErr(t("errExtra"));
+  const { error } = await db.from("invoice_items").insert({
+    invoice_id: folio.invoice.id, service_date: isoToday(), description: desc,
+    quantity: 1, unit_price_gross: amount, vat_rate: Number($("x-vat").value)
+  });
+  if (error) return folioErr(t("coErr") + error.message);
+  $("x-desc").value = "";
+  $("x-amount").value = "";
+  refreshFolio();
+});
+
+$("folio-close").addEventListener("click", () => $("folio-dialog").close());
+
+$("folio-pay").addEventListener("click", async () => {
+  const { res: r, invoice } = folio;
+  const tot = invoiceTotals(folio.items, folio.payments);
+  const btn = $("folio-pay");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t("saving");
+  try {
+    if (tot.open > 0) {
+      const { error } = await db.from("payments").insert({ invoice_id: invoice.id, amount: tot.open, method: $("pay-method").value });
+      if (error) throw error;
+    }
+    let { error } = await db.from("invoices").update({ status: "paid" }).eq("id", invoice.id);
+    if (error) throw error;
+    ({ error } = await db.from("reservations").update({ status: "checked_out" }).eq("id", r.id));
+    if (error) throw error;
+    ({ error } = await db.from("rooms").update({ status: "dirty" }).eq("number", r.room_number));
+    if (error) throw error;
+
+    $("folio-dialog").close();
+    flash(fill(t("coDone"), { name: guestName(r), room: r.room_number }));
+    loadReservations();
+    showInvoice(invoice.id);
+  } catch (e) {
+    folioErr(t("coErr") + (e.message || e));
+    refreshFolio();
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === t("saving")) btn.textContent = label;
+  }
+});
+
+/* ---------- Invoice document (Rechnung) ---------- */
+const CREST_SVG = `<svg width="46" height="46" viewBox="0 0 100 100" aria-hidden="true">
+  <circle cx="50" cy="50" r="47" fill="none" stroke="#C9A55C" stroke-width="1.6"/>
+  <circle cx="50" cy="50" r="41" fill="none" stroke="#C9A55C" stroke-width=".8"/>
+  <path fill="#C9A55C" d="M50 14 L55 43 L84 50 L55 57 L50 86 L45 57 L16 50 L45 43 Z"/>
+  <path fill="#C9A55C" opacity=".55" d="M50 30 L53 47 L70 50 L53 53 L50 70 L47 53 L30 50 L47 47 Z" transform="rotate(45 50 50)"/>
+</svg>`;
+
+async function showInvoice(id) {
+  const { data: inv, error } = await db.from("invoices")
+    .select(`id, invoice_number, issued_at, status,
+      reservations(booking_ref, arrival, departure, room_number,
+        guests(first_name, last_name, street, postal_code, city, country)),
+      invoice_items(*), payments(amount, method, paid_at)`)
+    .eq("id", id).single();
+  if (error) { alert(t("loadFail") + error.message); return; }
+  $("inv-doc").innerHTML = invoiceHtml(inv);
+  $("inv-dialog").showModal();
+}
+
+function invoiceHtml(inv) {
+  const r = inv.reservations;
+  const g = r.guests;
+  const items = [...inv.invoice_items].sort((a, b) => a.id - b.id);
+  const tot = invoiceTotals(items, inv.payments);
+  const issued = new Date(inv.issued_at).toLocaleDateString(t("locale"), { day: "2-digit", month: "2-digit", year: "numeric" });
+  const addr = [g.street, [g.postal_code, g.city].filter(Boolean).join(" "), g.country ? countryName(g.country) : ""].filter(Boolean)
+    .map(escapeHtml).join("<br>");
+
+  let h = `<div class="inv">
+    <header class="inv-head">
+      <div class="inv-brand">${CREST_SVG}
+        <div><div class="inv-word">HOTEL MORGENSTERN</div>
+        <div class="inv-addr">Morgensternstraße 1 · 80331 München · Deutschland</div></div>
+      </div>
+      <div>
+        <h2>${t("invDoc")}</h2>
+        <dl>
+          <dt>${t("invNo")}</dt><dd>${escapeHtml(inv.invoice_number)}</dd>
+          <dt>${t("invDate")}</dt><dd>${issued}</dd>
+          <dt>${t("bookingRef")}</dt><dd>${escapeHtml(r.booking_ref)}</dd>
+          <dt>${t("period")}</dt><dd>${fmtDate(r.arrival)} – ${fmtDate(r.departure)}</dd>
+        </dl>
+      </div>
+    </header>
+    <div class="inv-to"><strong>${escapeHtml(g.first_name)} ${escapeHtml(g.last_name)}</strong>${addr ? "<br>" + addr : ""}</div>
+
+    <table><thead><tr><th>${t("invDesc")}</th><th class="num-col">${t("invQty")}</th><th class="num-col">${t("invUnit")}</th>
+      <th class="num-col">${t("invVat")}</th><th class="num-col">${t("total")}</th></tr></thead><tbody>`;
+  items.forEach(i => {
+    h += `<tr><td>${escapeHtml(i.description)}</td><td class="num-col">${fmtQty(i.quantity)}</td>
+      <td class="num-col">${money(i.unit_price_gross)}</td><td class="num-col">${Number(i.vat_rate)} %</td>
+      <td class="num-col">${money(Number(i.quantity) * Number(i.unit_price_gross))}</td></tr>`;
+  });
+  h += `</tbody></table>
+
+    <table><thead><tr><th>${t("vatTable")}</th><th class="num-col">${t("net")}</th><th class="num-col">${t("vatAmt")}</th><th class="num-col">${t("gross")}</th></tr></thead><tbody>`;
+  tot.rates.forEach(x => {
+    h += `<tr><td>${x.rate} %</td><td class="num-col">${money(x.net)}</td><td class="num-col">${money(x.vat)}</td><td class="num-col">${money(x.gross)}</td></tr>`;
+  });
+  h += `</tbody></table>
+    <div class="inv-total"><span>${t("totalDue")}</span><span>${money(tot.total)}</span></div>`;
+
+  inv.payments.forEach(p => {
+    const d = new Date(p.paid_at).toLocaleDateString(t("locale"), { day: "2-digit", month: "2-digit", year: "numeric" });
+    h += `<div class="inv-paid">✓ ${fill(t("paidVia"), { date: d, method: escapeHtml(T[lang].pm[p.method] || p.method) })}: ${money(p.amount)}</div>`;
+  });
+  if (tot.open > 0) h += `<div class="inv-open">${t("openAmt")}: ${money(tot.open)} · ${t("payTerms")}</div>`;
+
+  h += `<p class="inv-thanks">${t("thanks")}</p>
+    <div class="inv-foot">Hotel Morgenstern GmbH · Morgensternstraße 1 · 80331 München · USt-IdNr. DE000000000 · Amtsgericht München HRB 000000<br>
+    Demo-Rechnung · ictorv PMS · ReDI School Demo Day</div>
+  </div>`;
+  return h;
+}
+
+$("inv-close").addEventListener("click", () => $("inv-dialog").close());
+$("inv-print").addEventListener("click", () => {
+  $("print-root").innerHTML = $("inv-doc").innerHTML;
+  document.body.classList.add("printing");
+  window.print();
+});
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("printing");
+  $("print-root").innerHTML = "";
+});
+
+/* ---------- Invoices list ---------- */
+let invoices = null;
+const INV_COLOR = { open: "var(--st-occupied)", paid: "var(--st-clean)", void: "var(--st-ooo)" };
+
+async function loadInvoices() {
+  if (!invoices) $("inv-list").innerHTML = `<p class="notice">${t("loadingShort")}</p>`;
+  const { data, error } = await db.from("invoices")
+    .select("id, invoice_number, issued_at, status, reservations(booking_ref, room_number, guests(first_name, last_name)), invoice_items(quantity, unit_price_gross, vat_rate), payments(amount)")
+    .order("id", { ascending: false });
+  if (error) { $("inv-list").innerHTML = `<p class="notice">${t("loadFail")}${escapeHtml(error.message)}</p>`; return; }
+  invoices = data;
+  renderInvoices();
+}
+
+function renderInvoices() {
+  if (!invoices) return;
+  if (!invoices.length) { $("inv-list").innerHTML = `<p class="notice">${t("noInv")}</p>`; return; }
+  let h = `<div class="table-wrap"><table><thead><tr>
+    <th>${t("thInvNo")}</th><th>${t("thDate")}</th><th>${t("thGuest")}</th><th>${t("thRef")}</th>
+    <th class="num-col">${t("thTotal")}</th><th>${t("thStatus")}</th><th></th></tr></thead><tbody>`;
+  invoices.forEach(inv => {
+    const r = inv.reservations || {};
+    const g = r.guests || { first_name: "", last_name: "" };
+    const tot = invoiceTotals(inv.invoice_items, inv.payments);
+    h += `<tr>
+      <td class="ref">${escapeHtml(inv.invoice_number)}</td>
+      <td>${new Date(inv.issued_at).toLocaleDateString(t("locale"), { day: "2-digit", month: "2-digit", year: "numeric" })}</td>
+      <td>${escapeHtml(g.last_name)}, ${escapeHtml(g.first_name)}</td>
+      <td>${escapeHtml(r.booking_ref || "")}<span class="sub-line">${t("room")} ${escapeHtml(r.room_number || "–")}</span></td>
+      <td class="num-col">${money(tot.total)}</td>
+      <td><span class="badge"><span class="dot" style="background:${INV_COLOR[inv.status]}"></span>${T[lang].invStatus[inv.status]}</span></td>
+      <td><div class="actions"><button type="button" class="btn-small outline" data-inv="${inv.id}">${t("view")}</button></div></td>
+    </tr>`;
+  });
+  h += "</tbody></table></div>";
+  $("inv-list").innerHTML = h;
+  $("inv-list").querySelectorAll("[data-inv]").forEach(b => b.addEventListener("click", () => showInvoice(Number(b.dataset.inv))));
+}
+
+/* ---------- Start ---------- */
+applyLang();
+db.auth.getSession().then(({ data }) => {
+  if (data.session) startApp(); else $("signin").classList.remove("hidden");
+});
+</script>
+<script>
+/* Open a section directly from a link like index.html#res */
+window.addEventListener("load", () => {
+  const view = location.hash.slice(1);
+  if (!view) return;
+  let tries = 0;
+  const timer = setInterval(() => {
+    const btn = document.querySelector('nav button[data-view="' + view + '"]');
+    if (btn && btn.offsetParent !== null) {
+      btn.click();
+      history.replaceState(null, "", location.pathname);
+      clearInterval(timer);
+    } else if (++tries > 120) {
+      clearInterval(timer);
+    }
+  }, 250);
+});
+</script>
+</body>
+</html>
